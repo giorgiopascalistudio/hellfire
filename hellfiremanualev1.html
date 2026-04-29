@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HELL-FIRE V3 — MANUAL MODE</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#0f1012',
+            primary: '#ff6b00',
+            success: '#38d27a',
+            danger: '#ff3b30',
+            textMain: '#e6e8eb',
+            textMuted: '#8f98a3'
+          },
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            body: ['Inter', 'sans-serif']
+          },
+          keyframes: {
+            blinkRed: {
+              '0%, 100%': { opacity: '1', boxShadow: '0 0 0 rgba(255,59,48,0)' },
+              '50%': { opacity: '.35', boxShadow: '0 0 18px rgba(255,59,48,.45)' }
+            }
+          },
+          animation: {
+            blinkRed: 'blinkRed 1s ease-in-out infinite'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      min-height: 100dvh;
+      overflow: hidden;
+      background: #0f1012;
+      color: #e6e8eb;
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(20,22,26,.22), rgba(12,13,16,.18));
+      border: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .scanline-overlay {
+      background:
+        linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.20) 50%),
+        linear-gradient(90deg, rgba(255,0,0,0.02), rgba(0,255,0,0.01), rgba(255,107,0,0.03));
+      background-size: 100% 3px, 4px 100%;
+      pointer-events: none;
+    }
+    .reticle-line { background: rgba(255,107,0,.32); }
+    .reticle-ring::before {
+      content: '';
+      position: absolute;
+      inset: 14%;
+      border: 1px solid rgba(255,107,0,.25);
+      border-radius: 999px;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .switch-pill.active {
+      background: rgba(255,107,0,.95);
+      color: #111;
+      box-shadow: 0 0 14px rgba(255,107,0,.25);
+    }
+    .joystick-base {
+      width: 250px;
+      height: 250px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,107,0,.10), rgba(255,107,0,.02) 38%, rgba(0,0,0,.40) 70%),
+        linear-gradient(180deg, rgba(30,33,38,.88), rgba(10,11,13,.9));
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: inset 0 0 40px rgba(255,107,0,.05), 0 14px 26px rgba(0,0,0,.30);
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .joystick-base::before, .joystick-base::after {
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,.08);
+    }
+    .joystick-base::before {
+      width: 1px; top: 14px; bottom: 14px;
+      left: 50%; transform: translateX(-50%);
+    }
+    .joystick-base::after {
+      height: 1px; left: 14px; right: 14px;
+      top: 50%; transform: translateY(-50%);
+    }
+    .joystick-knob {
+      width: 86px; height: 86px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 30%, #ff9b4a, #ff6b00 45%, #6f2b00 100%);
+      border: 3px solid rgba(255,255,255,.18);
+      box-shadow: 0 8px 22px rgba(0,0,0,.45);
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      cursor: grab;
+    }
+    .modal-backdrop {
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .hidden-force { display: none !important; }
+  </style>
+</head>
+<body class="bg-background text-textMain">
+  <div class="relative h-screen w-screen overflow-hidden bg-background">
+
+    <header class="fixed inset-x-0 top-0 z-50 h-20 border-b border-white/10 bg-[#0d0e10]/45 px-6 backdrop-blur-md">
+      <div class="flex h-full items-center justify-between gap-4">
+
+        <div class="flex items-center gap-3 min-w-[260px]">
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+            <span class="material-symbols-outlined">target</span>
+          </div>
+          <div>
+            <div class="font-display text-[22px] font-extrabold uppercase tracking-[0.14em] text-primary">HELL-FIRE</div>
+            <div class="font-display text-[10px] uppercase tracking-[0.28em] text-textMuted">SYSTEM V3 / MANUAL MODE</div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="flex items-center rounded-full border border-white/10 bg-white/5 p-1">
+            <button id="autoBtn" class="switch-pill rounded-full px-5 py-2 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-textMuted">AUTO</button>
+            <button id="manualBtn" class="switch-pill active rounded-full px-5 py-2 font-display text-[11px] font-bold uppercase tracking-[0.2em]">MANUALE</button>
+          </div>
+          <button id="emergencyBtn" class="rounded-full border border-danger px-5 py-2 font-display text-[11px] font-bold uppercase tracking-[0.18em] text-danger hover:bg-danger/10 transition">EMERGENZA</button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2">
+            <div class="font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">Sistema</div>
+            <div class="mt-1 flex items-center gap-2 font-display text-[12px] font-bold uppercase tracking-[0.16em] text-success">
+              <span class="status-dot bg-success"></span>
+              <span>Connesso</span>
+            </div>
+          </div>
+
+          <!-- TASTO ARM/DISARM -->
+          <button id="armToggleBtn" class="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-2 text-left transition hover:brightness-110 active:scale-[.98]">
+            <div class="font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">Stato torretta</div>
+            <div id="armToggleInner" class="mt-1 flex items-center gap-2 font-display text-[12px] font-bold uppercase tracking-[0.16em] text-danger animate-blinkRed">
+              <span id="armDot" class="status-dot bg-danger"></span>
+              <span id="armLabel">Armed</span>
+            </div>
+          </button>
+
+          <button class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-textMain hover:border-primary/40 hover:text-primary transition">
+            <span class="material-symbols-outlined">settings</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="relative h-full w-full pt-20">
+      <div class="absolute inset-0">
+        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmFYpG27alRiHNlJq6WQPQ4X-5Gqh4X9HM7HpbyY7350bNgBiZL9bek9bRyyxP-75SJny0Dyk5GStM7vHoUzeirughjQg4kHjsrkt8OK3ZkxYblwy2_K8Alt7T6FwquRNmH-G1gDbXLRosoJOv8Ft2Tfrz_-Yglfr8u4ZNXCWYx0RP4bRVlT7fOHH4wZPELtWhRyORsdy56L1Q2lWA9feBLHH2OlpSEgTCB9ZvUJ9yEmby-93NCoSURXOn9rLdJ3NQgNK61nrsSQ"
+          alt="Vista tattica HUD" class="h-full w-full object-cover grayscale opacity-70" />
+        <div class="scanline-overlay absolute inset-0"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,transparent_46%,rgba(0,0,0,.25)_100%)]"></div>
+      </div>
+
+      <section class="absolute left-6 top-28 z-20 flex w-[320px] flex-col gap-3">
+        <div class="panel rounded-3xl p-4">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <p class="font-display text-[10px] uppercase tracking-[0.24em] text-textMuted">Modalità di fuoco</p>
+              <p class="font-display text-[13px] font-bold uppercase tracking-[0.14em]">Selettore colpi</p>
+            </div>
+            <button id="openFireSettings" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition">
+              <span class="material-symbols-outlined">tune</span>
+            </button>
+          </div>
+          <div class="flex items-center rounded-full border border-white/10 bg-black/25 p-1">
+            <button id="singleBtn" class="switch-pill active flex-1 rounded-full px-4 py-3 font-display text-[11px] font-bold uppercase tracking-[0.2em]">Singolo</button>
+            <button id="burstBtn" class="switch-pill flex-1 rounded-full px-4 py-3 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-textMuted">Raffica</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="absolute right-6 top-28 z-20 flex w-[290px] flex-col gap-3">
+        <div class="panel rounded-3xl p-4 space-y-4">
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <span class="font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">Qualità segnale</span>
+              <span class="font-display text-[12px] font-bold uppercase tracking-[0.16em] text-success">-42 dBm</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-white/8">
+              <div class="h-full w-[88%] rounded-full bg-success"></div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <span class="font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">Livello CPU</span>
+              <span class="font-display text-[12px] font-bold uppercase tracking-[0.16em] text-primary">46%</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-white/8">
+              <div class="h-full w-[46%] rounded-full bg-primary"></div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <span class="font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">Livello RAM</span>
+              <span class="font-display text-[12px] font-bold uppercase tracking-[0.16em] text-primary">63%</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-white/8">
+              <div class="h-full w-[63%] rounded-full bg-primary"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+        <div class="reticle-ring relative flex h-[320px] w-[320px] items-center justify-center overflow-hidden rounded-full border border-primary/20">
+          <div class="reticle-line absolute left-1/2 h-full w-px -translate-x-1/2"></div>
+          <div class="reticle-line absolute top-1/2 h-px w-full -translate-y-1/2"></div>
+          <div class="absolute h-12 w-12 rounded-2xl border-2 border-primary"></div>
+          <div class="absolute -top-8 left-1/2 -translate-x-1/2 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-primary">VISUAL LOCK GRID</div>
+          <div class="absolute left-5 top-1/2 -translate-y-1/2 font-display text-[10px] uppercase tracking-[0.18em] text-primary/80">PAN</div>
+          <div class="absolute top-5 left-1/2 -translate-x-1/2 font-display text-[10px] uppercase tracking-[0.18em] text-primary/80">TILT</div>
+        </div>
+      </section>
+
+      <section class="absolute bottom-6 left-6 z-20">
+        <div class="panel rounded-[34px] px-5 py-5">
+          <div class="joystick-base" id="joystickBase">
+            <div class="absolute left-1/2 top-2 -translate-x-1/2 font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">TILT +</div>
+            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">TILT −</div>
+            <div class="absolute left-3 top-1/2 -translate-y-1/2 font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">PAN −</div>
+            <div class="absolute right-3 top-1/2 -translate-y-1/2 font-display text-[10px] uppercase tracking-[0.22em] text-textMuted">PAN +</div>
+            <div class="joystick-knob" id="joystickKnob"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 flex items-center gap-4 panel rounded-2xl px-5 py-2.5">
+        <div class="flex items-center gap-2 border-r border-white/10 pr-4">
+          <span class="font-display text-[9px] uppercase tracking-[0.2em] text-textMuted">PAN</span>
+          <span id="panAngleValue" class="font-display text-[15px] font-bold text-primary">184.2°</span>
+        </div>
+        <div class="flex items-center gap-2 border-r border-white/10 pr-4">
+          <span class="font-display text-[9px] uppercase tracking-[0.2em] text-textMuted">TILT</span>
+          <span id="tiltAngleValue" class="font-display text-[15px] font-bold text-primary">+12.5°</span>
+        </div>
+        <div class="flex items-center gap-2 border-r border-white/10 pr-4">
+          <span class="font-display text-[9px] uppercase tracking-[0.2em] text-textMuted">SPD PAN</span>
+          <span id="panSpeedValue" class="font-display text-[15px] font-bold text-textMain">0.0°/s</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-display text-[9px] uppercase tracking-[0.2em] text-textMuted">SPD TILT</span>
+          <span id="tiltSpeedValue" class="font-display text-[15px] font-bold text-textMain">0.0°/s</span>
+        </div>
+      </section>
+
+      <section class="absolute bottom-6 right-6 z-20">
+        <div class="panel rounded-[30px] px-6 py-5">
+          <div class="mb-4 flex items-center gap-3">
+            <span class="material-symbols-outlined text-primary">warning</span>
+            <div>
+              <p class="font-display text-[10px] uppercase tracking-[0.24em] text-textMuted">Engagement</p>
+              <p class="font-display text-[13px] font-bold uppercase tracking-[0.14em]">Fire authorization</p>
+            </div>
+          </div>
+          <button class="h-24 w-48 rounded-[28px] border border-primary/30 bg-primary text-[22px] font-display font-extrabold uppercase tracking-[0.28em] text-black transition hover:brightness-110 active:scale-[.98]">
+            FIRE
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- FIRE SETTINGS MODAL -->
+    <div id="fireSettingsModal" class="hidden-force fixed inset-0 z-[100] items-center justify-center">
+      <div class="modal-backdrop absolute inset-0"></div>
+      <div class="relative z-10 w-[680px] max-w-[92vw] rounded-[28px] border border-white/10 bg-[#121417]/88 p-6 shadow-2xl backdrop-blur-xl">
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 class="font-display text-[22px] font-bold uppercase tracking-[0.12em] text-primary">Impostazioni fuoco</h2>
+            <p class="mt-1 text-sm text-textMuted">Configura tutte le opzioni operative della modalità di fuoco.</p>
+          </div>
+          <button id="closeFireSettings" class="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 hover:border-danger/40 hover:text-danger transition">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <label class="panel rounded-2xl p-4 block">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Modalità</span>
+            <select id="fireModeSelect" class="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none">
+              <option value="SINGOLO">SINGOLO</option>
+              <option value="RAFFICA">RAFFICA</option>
+              <option value="SAFE">SAFE</option>
+            </select>
+          </label>
+          <label class="panel rounded-2xl p-4 block">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Colpi per raffica</span>
+            <input id="burstCountInput" type="number" min="2" max="20" value="3" class="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none" />
+          </label>
+          <label class="panel rounded-2xl p-4 block">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Cadenza fuoco (rpm)</span>
+            <input id="rpmInput" type="number" min="60" max="1800" value="650" class="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none" />
+          </label>
+          <label class="panel rounded-2xl p-4 block">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Ritardo pre-fire (ms)</span>
+            <input id="prefireInput" type="number" min="0" max="5000" value="120" class="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none" />
+          </label>
+          <label class="panel rounded-2xl p-4 block">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Tempo hold trigger (ms)</span>
+            <input id="holdInput" type="number" min="0" max="10000" value="350" class="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none" />
+          </label>
+          <label class="panel rounded-2xl p-4 block">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Cooldown (ms)</span>
+            <input id="cooldownInput" type="number" min="0" max="10000" value="500" class="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm outline-none" />
+          </label>
+          <label class="panel rounded-2xl p-4 flex items-center justify-between">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Conferma armamento prima del fuoco</span>
+            <input id="confirmArmInput" type="checkbox" checked class="h-5 w-5 accent-orange-500" />
+          </label>
+          <label class="panel rounded-2xl p-4 flex items-center justify-between">
+            <span class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Blocco sicurezza attivo</span>
+            <input id="safetyLockInput" type="checkbox" class="h-5 w-5 accent-orange-500" />
+          </label>
+        </div>
+        <div class="mt-5 panel rounded-2xl p-4">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <p class="font-display text-[10px] uppercase tracking-[0.2em] text-textMuted">Profilo attivo</p>
+              <p id="fireProfileSummary" class="mt-1 font-display text-[13px] font-bold uppercase tracking-[0.12em] text-primary">SINGOLO / 650 RPM / PRE-FIRE 120 MS</p>
+            </div>
+            <button id="saveFireSettings" class="rounded-2xl border border-primary/30 bg-primary px-5 py-3 font-display text-[12px] font-bold uppercase tracking-[0.18em] text-black hover:brightness-110 transition">Applica</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMERGENCY OVERLAY -->
+    <div id="emergencyOverlay" class="hidden-force fixed inset-0 z-[200] flex-col items-center justify-center">
+      <div class="absolute inset-0 bg-[#ff0a0a]/20 animate-pulse pointer-events-none"></div>
+      <div class="absolute inset-0" style="background: repeating-linear-gradient(0deg, rgba(255,10,10,0.06) 0px, rgba(255,10,10,0.06) 2px, transparent 2px, transparent 8px); pointer-events:none;"></div>
+      <div class="absolute inset-0 border-4 border-danger animate-pulse pointer-events-none"></div>
+      <div class="relative z-10 flex flex-col items-center gap-6 text-center px-8">
+        <div class="flex items-center justify-center w-24 h-24 rounded-full border-4 border-danger bg-danger/20 shadow-[0_0_60px_rgba(255,59,48,.6)] animate-pulse">
+          <span class="material-symbols-outlined text-danger" style="font-size:52px">warning</span>
+        </div>
+        <div>
+          <p class="font-display text-[11px] uppercase tracking-[0.4em] text-danger/80 mb-2">// SISTEMA IN SICUREZZA //</p>
+          <h1 class="font-display text-[52px] font-black uppercase tracking-[0.12em] text-danger" style="text-shadow: 0 0 40px rgba(255,59,48,.7)">EMERGENZA</h1>
+          <p class="font-display text-[13px] uppercase tracking-[0.3em] text-danger/70 mt-2">TUTTI I SISTEMI DISATTIVATI — IN ATTESA DI AUTORIZZAZIONE</p>
+        </div>
+        <div class="flex gap-10 mt-2">
+          <div class="flex flex-col items-center gap-1">
+            <span class="font-display text-[10px] uppercase tracking-[0.22em] text-danger/60">Torretta</span>
+            <span class="font-display text-[14px] font-bold uppercase tracking-[0.18em] text-danger">BLOCCATA</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="font-display text-[10px] uppercase tracking-[0.22em] text-danger/60">Fuoco</span>
+            <span class="font-display text-[14px] font-bold uppercase tracking-[0.18em] text-danger">DISABILITATO</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <span class="font-display text-[10px] uppercase tracking-[0.22em] text-danger/60">Comunicazioni</span>
+            <span class="font-display text-[14px] font-bold uppercase tracking-[0.18em] text-danger">IN ASCOLTO</span>
+          </div>
+        </div>
+        <div class="mt-4 w-full max-w-[360px] rounded-[24px] border border-danger/30 bg-[#0f1012]/80 p-6 backdrop-blur-xl">
+          <p class="font-display text-[11px] uppercase tracking-[0.24em] text-danger/70 mb-4 text-center">Inserire credenziali per sbloccare</p>
+          <div class="flex flex-col gap-3">
+            <input id="emergencyUser" type="text" placeholder="USERNAME" autocomplete="off"
+              class="w-full rounded-2xl border border-danger/25 bg-black/30 px-4 py-3 font-display text-[13px] uppercase tracking-[0.18em] text-textMain placeholder:text-textMuted outline-none focus:border-danger/60 transition" />
+            <input id="emergencyPass" type="password" placeholder="PASSWORD"
+              class="w-full rounded-2xl border border-danger/25 bg-black/30 px-4 py-3 font-display text-[13px] uppercase tracking-[0.18em] text-textMain placeholder:text-textMuted outline-none focus:border-danger/60 transition" />
+            <p id="emergencyError" class="hidden-force font-display text-[11px] uppercase tracking-[0.18em] text-danger text-center mt-1">Credenziali non valide</p>
+            <button id="emergencyUnlockBtn"
+              class="w-full rounded-2xl border border-danger/40 bg-danger px-5 py-4 font-display text-[13px] font-black uppercase tracking-[0.22em] text-white hover:brightness-110 active:scale-[.98] transition mt-1">
+              Sblocca sistema
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function bindSwitch(group) {
+      group.forEach(btn => {
+        btn.addEventListener('click', () => {
+          group.forEach(b => { b.classList.remove('active'); b.classList.add('text-textMuted'); });
+          btn.classList.add('active');
+          btn.classList.remove('text-textMuted');
+        });
+      });
+    }
+    bindSwitch([document.getElementById('autoBtn'), document.getElementById('manualBtn')]);
+    bindSwitch([document.getElementById('singleBtn'), document.getElementById('burstBtn')]);
+
+    // Fire settings modal
+    const modal = document.getElementById('fireSettingsModal');
+    document.getElementById('openFireSettings').addEventListener('click', () => { modal.classList.remove('hidden-force'); modal.classList.add('flex'); });
+    document.getElementById('closeFireSettings').addEventListener('click', () => { modal.classList.add('hidden-force'); modal.classList.remove('flex'); });
+    modal.addEventListener('click', (e) => { if (e.target === modal || e.target.classList.contains('modal-backdrop')) { modal.classList.add('hidden-force'); modal.classList.remove('flex'); } });
+
+    const fireModeSelect = document.getElementById('fireModeSelect');
+    const burstCountInput = document.getElementById('burstCountInput');
+    const rpmInput = document.getElementById('rpmInput');
+    const prefireInput = document.getElementById('prefireInput');
+    const fireProfileSummary = document.getElementById('fireProfileSummary');
+
+    function refreshFireSummary() {
+      const mode = fireModeSelect.value, rpm = rpmInput.value||'0', prefire = prefireInput.value||'0', burst = burstCountInput.value||'0';
+      fireProfileSummary.textContent = mode === 'RAFFICA' ? `${mode} / ${burst} COLPI / ${rpm} RPM / PRE-FIRE ${prefire} MS` : `${mode} / ${rpm} RPM / PRE-FIRE ${prefire} MS`;
+    }
+    [fireModeSelect, burstCountInput, rpmInput, prefireInput, document.getElementById('holdInput'), document.getElementById('cooldownInput')].forEach(el => { el.addEventListener('input', refreshFireSummary); el.addEventListener('change', refreshFireSummary); });
+    document.getElementById('saveFireSettings').addEventListener('click', () => {
+      const mode = fireModeSelect.value;
+      if (mode === 'SINGOLO') document.getElementById('singleBtn').click();
+      else if (mode === 'RAFFICA') document.getElementById('burstBtn').click();
+      refreshFireSummary();
+      modal.classList.add('hidden-force'); modal.classList.remove('flex');
+    });
+    refreshFireSummary();
+
+    // Joystick
+    const joystickBase = document.getElementById('joystickBase');
+    const joystickKnob = document.getElementById('joystickKnob');
+    const panAngleValue = document.getElementById('panAngleValue');
+    const tiltAngleValue = document.getElementById('tiltAngleValue');
+    const panSpeedValue = document.getElementById('panSpeedValue');
+    const tiltSpeedValue = document.getElementById('tiltSpeedValue');
+    let dragging = false;
+    const maxRadius = 68;
+
+    function updateAxisReadout(pan, tilt, panSpeed, tiltSpeed) {
+      panAngleValue.textContent = `${pan.toFixed(1)}°`;
+      tiltAngleValue.textContent = `${tilt >= 0 ? '+' : ''}${tilt.toFixed(1)}°`;
+      panSpeedValue.textContent = `${panSpeed.toFixed(1)}°/s`;
+      tiltSpeedValue.textContent = `${tiltSpeed.toFixed(1)}°/s`;
+    }
+
+    function moveKnob(clientX, clientY) {
+      const rect = joystickBase.getBoundingClientRect();
+      let dx = clientX - (rect.left + rect.width / 2);
+      let dy = clientY - (rect.top + rect.height / 2);
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxRadius) { dx = dx/dist*maxRadius; dy = dy/dist*maxRadius; }
+      joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      const nx = dx/maxRadius, ny = dy/maxRadius;
+      updateAxisReadout(184.2 + nx*35, 12.5 - ny*22, nx*24, -ny*18);
+    }
+
+    function stopDrag() {
+      dragging = false;
+      joystickKnob.style.transform = 'translate(-50%, -50%)';
+      updateAxisReadout(184.2, 12.5, 0, 0);
+    }
+
+    joystickBase.addEventListener('pointerdown', (e) => { dragging = true; joystickKnob.setPointerCapture(e.pointerId); moveKnob(e.clientX, e.clientY); });
+    joystickBase.addEventListener('pointermove', (e) => { if (dragging) moveKnob(e.clientX, e.clientY); });
+    joystickBase.addEventListener('pointerup', stopDrag);
+    joystickBase.addEventListener('pointercancel', stopDrag);
+    updateAxisReadout(184.2, 12.5, 0, 0);
+
+    // Emergency
+    const emergencyOverlay = document.getElementById('emergencyOverlay');
+    const emergencyUser = document.getElementById('emergencyUser');
+    const emergencyPass = document.getElementById('emergencyPass');
+    const emergencyError = document.getElementById('emergencyError');
+    const VALID_USER = 'admin', VALID_PASS = 'hellfire';
+
+    document.getElementById('emergencyBtn').addEventListener('click', () => {
+      emergencyOverlay.classList.remove('hidden-force'); emergencyOverlay.classList.add('flex');
+      emergencyUser.value = ''; emergencyPass.value = '';
+      emergencyError.classList.add('hidden-force');
+      stopDrag();
+    });
+
+    document.getElementById('emergencyUnlockBtn').addEventListener('click', () => {
+      if (emergencyUser.value.trim().toLowerCase() === VALID_USER && emergencyPass.value === VALID_PASS) {
+        emergencyOverlay.classList.add('hidden-force'); emergencyOverlay.classList.remove('flex');
+      } else {
+        emergencyError.classList.remove('hidden-force');
+        emergencyPass.value = ''; emergencyUser.focus();
+      }
+    });
+    emergencyPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('emergencyUnlockBtn').click(); });
+
+    // ARM / DISARM TOGGLE
+    const armToggleBtn = document.getElementById('armToggleBtn');
+    const armToggleInner = document.getElementById('armToggleInner');
+    const armDot = document.getElementById('armDot');
+    const armLabel = document.getElementById('armLabel');
+    let isArmed = true;
+
+    armToggleBtn.addEventListener('click', () => {
+      isArmed = !isArmed;
+      if (isArmed) {
+        armToggleBtn.className = 'rounded-2xl border border-danger/40 bg-danger/10 px-4 py-2 text-left transition hover:brightness-110 active:scale-[.98]';
+        armToggleInner.className = 'mt-1 flex items-center gap-2 font-display text-[12px] font-bold uppercase tracking-[0.16em] text-danger animate-blinkRed';
+        armDot.className = 'status-dot bg-danger';
+        armLabel.textContent = 'Armed';
+      } else {
+        armToggleBtn.className = 'rounded-2xl border border-success/40 bg-success/10 px-4 py-2 text-left transition hover:brightness-110 active:scale-[.98]';
+        armToggleInner.className = 'mt-1 flex items-center gap-2 font-display text-[12px] font-bold uppercase tracking-[0.16em] text-success';
+        armDot.className = 'status-dot bg-success';
+        armLabel.textContent = 'Disarmed';
+      }
+    });
+  </script>
+</body>
+</html>
